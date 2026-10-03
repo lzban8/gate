@@ -465,6 +465,7 @@ EDGE_HOSTS = [
     ).split(",")
     if h.strip()
 ]
+
 HOSTS_URL = os.environ.get("HOSTS_URL", "https://lzban8.github.io/gate/hosts.txt")
 NODES_URL = os.environ.get("NODES_URL", "https://lzban8.github.io/gate/nodes.txt")
 
