@@ -56,12 +56,6 @@ CONCURRENCY = max(1, int(os.environ.get("CHECK_CONCURRENCY", "32")))   # 与 Wor
 CHECK_TIMEOUT = float(os.environ.get("CHECK_TIMEOUT", "90"))          # 单请求客户端超时 (秒)
 MAX_CHECK_NODES = int(os.environ.get("MAX_CHECK_NODES", "0"))         # 0=不限; 本地测试可设小值
 HTTP_TIMEOUT = int(os.environ.get("HTTP_TIMEOUT", "60"))              # 拉取数据源超时
-# 订阅延迟上限 (毫秒): v2rayN 等客户端延迟测试超时约 5 秒, 而 SSTP 拨号本身需数秒,
-# 超过此值的节点在客户端必定显示 -1, 故不收录进订阅。设为 0 则不过滤。
-
-# 订阅是否使用优选域名作为 vless 地址 (提升边缘连接速度; SNI/Host 仍用 EDT_DOMAIN 以路由到自己的 Worker)。
-# 设为 0 则直接使用 EDT_DOMAIN 作为地址。
-
 PUBLIC_DIR = os.environ.get("PUBLIC_DIR", os.path.join(REPO_DIR, "public"))
 TEMPLATE_HTML = os.path.join(REPO_DIR, "web", "index.html")
 
@@ -451,11 +445,11 @@ def build_chains_text(data):
         lines.append(
             f"# ---- {zh} {code} · {grp['count']} 节点 (住宅 {grp['residential']} / 机房 {grp['datacenter']}) ----"
         )
-
-
-        for i, n in enumerate([n for n in nodes if n.get("residential") == "residential"], 1):
+        res_nodes = [n for n in nodes if n.get("residential") == "residential"]
+        dc_nodes = [n for n in nodes if n.get("residential") != "residential"]
+        for i, n in enumerate(res_nodes, 1):
             lines.append(f"{zh}-住宅-{i:02d}$sstp://vpn:vpn@{n['host']}:{n['port']}")
-        for i, n in enumerate([n for n in nodes if n.get("residential") != "residential"], 1):
+        for i, n in enumerate(dc_nodes, 1):
             lines.append(f"{zh}-机房-{i:02d}$sstp://vpn:vpn@{n['host']}:{n['port']}")
     return "\n".join(lines) + "\n"
 
@@ -471,7 +465,6 @@ EDGE_HOSTS = [
     ).split(",")
     if h.strip()
 ]
-
 HOSTS_URL = os.environ.get("HOSTS_URL", "https://lzban8.github.io/gate/hosts.txt")
 NODES_URL = os.environ.get("NODES_URL", "https://lzban8.github.io/gate/nodes.txt")
 
@@ -515,13 +508,13 @@ def build_hosts_text(data):
         lines.append(
             f"# ---- {zh} {code} · {grp['count']} 节点 (住宅 {grp['residential']} / 机房 {grp['datacenter']}) ----"
         )
-
-
-        for i, n in enumerate([n for n in nodes if n.get("residential") == "residential"], 1):
+        res_nodes = [n for n in nodes if n.get("residential") == "residential"]
+        dc_nodes = [n for n in nodes if n.get("residential") != "residential"]
+        for i, n in enumerate(res_nodes, 1):
             entry = edge[idx % len(edge)]
             idx += 1
             lines.append(f"{entry}#{zh}-住宅-{i:02d}$sstp://vpn:vpn@{n['host']}:{n['port']}")
-        for i, n in enumerate([n for n in nodes if n.get("residential") != "residential"], 1):
+        for i, n in enumerate(dc_nodes, 1):
             entry = edge[idx % len(edge)]
             idx += 1
             lines.append(f"{entry}#{zh}-机房-{i:02d}$sstp://vpn:vpn@{n['host']}:{n['port']}")
@@ -567,42 +560,23 @@ def _socks5_account(address, default_port=80):
     return {"username": username, "password": password, "hostname": hostname, "port": port}
 
 
-def _parse_edge_host(entry, default_host, default_port=443):
-    """解析优选域名条目 'domain:port' -> (host, port)。"""
-    entry = (entry or "").strip()
-    if not entry:
-        return default_host, default_port
-    if ":" in entry and not entry.startswith("["):
-        h, p = entry.rsplit(":", 1)
-        if p.isdigit():
-            return h.strip(), int(p)
-    return entry, default_port
-
-
 def build_sub_text(data):
     """生成 edgetunnel 完整 vless:// 订阅 (链式代理编码在 path)。
-    填进 edgetunnel 后台「订阅链接」URL, 客户端定时拉取即可自动轮换。
-    地址使用优选域名 (EDGE_HOSTS 轮询, 提升边缘连接速度), SNI/Host 仍用 EDT_DOMAIN
-    以路由到自己的 Worker; 名字按 住宅/机房 分组编号; 仅收录延迟达标的节点。"""
+    填进 edgetunnel 后台「订阅链接」URL, 客户端定时拉取即可自动轮换。"""
     countries = data["countries"]
-    # 优选域名入口池 (与 hosts.txt 共用 EDGE_HOSTS)
-    _edge_entry = os.environ.get("SUB_EDGE_HOSTS", "").strip()
-    edge_hosts = [e.strip() for e in _edge_entry.split(",") if e.strip()] or EDGE_HOSTS or [f"{EDT_DOMAIN}:443"]
     lines = [
         "# edgetunnel 完整订阅 (vless://) —— 填进后台「订阅链接」URL",
         f"# 自动更新: {data['generated_at']} (每 30 分钟重新检测)",
         f"# 固定地址: {SUB_URL}",
-        f"# 入口地址: 优选域名轮询 (SNI/Host={EDT_DOMAIN}, 传输 ws / TLS / fingerprint {EDT_FINGERPRINT})",
+        f"# 节点域名: {EDT_DOMAIN} (传输 ws / TLS / fingerprint {EDT_FINGERPRINT})",
         "# 名字固定; $sstp:// 链式代理(编码在 path)每 30 分钟自动更换",
         "# 账号密码固定 vpn:vpn ; 节点端口已编码进 path",
-
         "# ========================================================",
     ]
     ordered = sorted(
         countries.items(),
         key=lambda kv: (-int(kv[1].get("count") or 0), str(kv[1].get("code") or kv[0])),
     )
-
     for cname, grp in ordered:
         code = str(grp.get("code") or "?").upper()
         zh = COUNTRY_ZH.get(code) or (code if code and code != "?" else cname)
@@ -615,29 +589,18 @@ def build_sub_text(data):
                 n.get("host") or "",
             ),
         )
-        # 过滤掉太慢的节点: 客户端 5 秒超时, 这些节点必定显示 -1
-
-
-        # 按 住宅/机房 分组编号 (与 hosts.txt 一致)
-
-
         for i, n in enumerate(nodes, 1):
-
-                name = f"{zh}-{i:02d}"
-                chain = {"type": "sstp", **_socks5_account(f"vpn:vpn@{n['host']}:{n['port']}", 443)}
-                chain_json = json.dumps(chain, separators=(",", ":"))
-                enc = _b64_secret_encode(chain_json, EDT_UUID)
-                path = quote("/video/" + enc, safe="")
-
-
-
-                addr_host, addr_port = EDT_DOMAIN, 443
-                link = (
-                    f"vless://{EDT_UUID}@{addr_host}:{addr_port}?security=tls&type=ws"
-                    f"&host={EDT_DOMAIN}&fp={EDT_FINGERPRINT}&sni={EDT_DOMAIN}"
-                    f"&path={path}&encryption=none&alpn=#{quote(name, safe='')}"
-                )
-                lines.append(link)
+            name = f"{zh}-{i:02d}"
+            chain = {"type": "sstp", **_socks5_account(f"vpn:vpn@{n['host']}:{n['port']}", 443)}
+            chain_json = json.dumps(chain, separators=(",", ":"))
+            enc = _b64_secret_encode(chain_json, EDT_UUID)
+            path = quote("/video/" + enc, safe="")
+            link = (
+                f"vless://{EDT_UUID}@{EDT_DOMAIN}:443?security=tls&type=ws"
+                f"&host={EDT_DOMAIN}&fp={EDT_FINGERPRINT}&sni={EDT_DOMAIN}"
+                f"&path={path}&encryption=none&alpn=#{quote(name, safe='')}"
+            )
+            lines.append(link)
     return "\n".join(lines) + "\n"
 
 
