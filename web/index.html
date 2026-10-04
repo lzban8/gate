@@ -19,11 +19,14 @@
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
   .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }  .card.wide { grid-column: span 2; }
   .card .v.ts { font-size: 16px; white-space: nowrap; }
-  .files { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 18px; }
-  .file-btn { display: block; background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 10px 18px; font-size: 13px; text-decoration: none; }
-  .file-btn:hover { border-color: var(--accent); }
-  .file-btn .fn { font-weight: 700; color: var(--accent); }
-  .file-btn .fd { color: var(--muted); font-size: 12px; margin-top: 3px; }  .card .k { color: var(--muted); font-size: 12px; }  .card .v { font-size: 24px; font-weight: 700; margin-top: 4px; white-space: nowrap; }
+  .files-title { font-size: 14px; font-weight: 600; color: var(--muted); margin: 0 0 10px; }
+  .files { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .file-btn { position: relative; display: block; background: var(--panel); border: 1px solid var(--border); color: var(--text); border-radius: 12px; padding: 14px 16px; font-size: 13px; text-decoration: none; transition: border-color .2s, transform .2s, box-shadow .2s; }
+  .file-btn:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 0 14px rgba(76,194,255,.22); }
+  .file-btn .fn { display: block; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .file-btn .fd { display: block; color: var(--muted); font-size: 12px; }  .card .k { color: var(--muted); font-size: 12px; }  .card .v { font-size: 24px; font-weight: 700; margin-top: 4px; white-space: nowrap; }
+  .file-btn .rec { position: absolute; top: 10px; right: 10px; background: var(--accent); color: #06121f; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+  .file-btn.rec-card .fn { padding-right: 44px; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
   .pill { background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 6px 14px; font-size: 13px; cursor: pointer; user-select: none; }
   .pill.on { border-color: var(--accent); color: var(--accent); }
@@ -45,6 +48,8 @@
   .empty { color: var(--muted); padding: 30px; text-align: center; }
   .footer { color: var(--muted); font-size: 12px; margin-top: 20px; text-align: center; }
   @media (max-width: 700px) { th, td { padding: 7px 8px; } .hide-m { display: none; } }
+  @media (max-width: 900px) { .files { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .files { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -52,7 +57,14 @@
   <h1>VPN Gate · SSTP 节点检测</h1>
   <div class="sub">节点来自 VPN Gate（仅 TCP 入口中继），检测由 Cloudflare Worker 执行，GitHub Actions 定时刷新</div>
 
-  <div class="cards" id="cards"></div><div class="files"><a class="file-btn" href="./hosts.txt" target="_blank" rel="noopener"><span class="fn">hosts.txt</span><span class="fd">含注释，给人看 / 手动粘贴</span></a><a class="file-btn" href="./nodes.txt" target="_blank" rel="noopener"><span class="fn">nodes.txt</span><span class="fd">纯节点行，填 URL 自动轮换 ★推荐</span></a><a class="file-btn" href="./chains.txt" target="_blank" rel="noopener"><span class="fn">chains.txt</span><span class="fd">链式代理备注清单</span></a><a class="file-btn" href="./sub.txt" target="_blank" rel="noopener"><span class="fn">sub.txt</span><span class="fd">vless:// 完整订阅</span></a></div>
+  <div class="cards" id="cards"></div>
+  <div class="files-title">📄 文件下载</div>
+  <div class="files">
+    <a class="file-btn" href="./hosts.txt" target="_blank" rel="noopener"><span class="fn">📄 hosts.txt</span><span class="fd">含注释，给人看 / 手动粘贴</span></a>
+    <a class="file-btn rec-card" href="./nodes.txt" target="_blank" rel="noopener"><span class="rec">推荐</span><span class="fn">📄 nodes.txt</span><span class="fd">纯节点行，填 URL 自动轮换</span></a>
+    <a class="file-btn" href="./chains.txt" target="_blank" rel="noopener"><span class="fn">📄 chains.txt</span><span class="fd">链式代理备注清单</span></a>
+    <a class="file-btn" href="./sub.txt" target="_blank" rel="noopener"><span class="fn">📄 sub.txt</span><span class="fd">vless:// 完整订阅</span></a>
+  </div>
 
   <div class="bar">
     <span class="pill on" data-f="all">全部</span>
@@ -104,7 +116,7 @@ function rowHtml(n) {
     '<td class="hide-m" style="color:var(--muted)">' + exit + '</td>' +
     '<td>' + badge + '</td>' +
     '<td class="hide-m" style="color:var(--muted)">' + date + '</td>' +
-    '</tr>';
+  '</tr>';
 }
 
 function renderCountries() {
