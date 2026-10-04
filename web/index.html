@@ -18,7 +18,7 @@
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
   .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
   .card .k { color: var(--muted); font-size: 12px; }
-  .card .v { font-size: 24px; font-weight: 700; margin-top: 4px; }
+  .card .v { font-size: 24px; font-weight: 700; margin-top: 4px; white-space: nowrap; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
   .pill { background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 6px 14px; font-size: 13px; cursor: pointer; user-select: none; }
   .pill.on { border-color: var(--accent); color: var(--accent); }
@@ -72,7 +72,7 @@ function copyLink(text) {
 function renderCards(d) {
   const s = d.stats || {};
   const items = [
-    ["最后更新", d.generated_at || "-", "时区 UTC"],
+    ["最后更新", d.generated_at || "-", "时区 北京时间"],
     ["SSTP 节点", s.sstp_nodes, "筛选自 VPN Gate"],
     ["已检测", s.checked, "提交给 Worker"],
     ["可用节点", s.success, "success = true"],
