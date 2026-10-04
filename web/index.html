@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -16,9 +17,13 @@
   h1 { font-size: 22px; margin-bottom: 4px; }
   .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-  .card .k { color: var(--muted); font-size: 12px; }
-  .card .v { font-size: 24px; font-weight: 700; margin-top: 4px; white-space: nowrap; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }  .card.wide { grid-column: span 2; }
+  .card .v.ts { font-size: 16px; white-space: nowrap; }
+  .files { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .file-btn { display: block; background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 10px 18px; font-size: 13px; text-decoration: none; }
+  .file-btn:hover { border-color: var(--accent); }
+  .file-btn .fn { font-weight: 700; color: var(--accent); }
+  .file-btn .fd { color: var(--muted); font-size: 12px; margin-top: 3px; }  .card .k { color: var(--muted); font-size: 12px; }  .card .v { font-size: 24px; font-weight: 700; margin-top: 4px; white-space: nowrap; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
   .pill { background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 6px 14px; font-size: 13px; cursor: pointer; user-select: none; }
   .pill.on { border-color: var(--accent); color: var(--accent); }
@@ -47,7 +52,7 @@
   <h1>VPN Gate · SSTP 节点检测</h1>
   <div class="sub">节点来自 VPN Gate（仅 TCP 入口中继），检测由 Cloudflare Worker 执行，GitHub Actions 定时刷新</div>
 
-  <div class="cards" id="cards"></div>
+  <div class="cards" id="cards"></div><div class="files"><a class="file-btn" href="./hosts.txt" target="_blank" rel="noopener"><span class="fn">hosts.txt</span><span class="fd">含注释，给人看 / 手动粘贴</span></a><a class="file-btn" href="./nodes.txt" target="_blank" rel="noopener"><span class="fn">nodes.txt</span><span class="fd">纯节点行，填 URL 自动轮换 ★推荐</span></a><a class="file-btn" href="./chains.txt" target="_blank" rel="noopener"><span class="fn">chains.txt</span><span class="fd">链式代理备注清单</span></a><a class="file-btn" href="./sub.txt" target="_blank" rel="noopener"><span class="fn">sub.txt</span><span class="fd">vless:// 完整订阅</span></a></div>
 
   <div class="bar">
     <span class="pill on" data-f="all">全部</span>
@@ -79,8 +84,8 @@ function renderCards(d) {
     ["国家数量", s.countries, "按可用节点统计"],
     ["住宅(估算)", s.residential_est, "数据中心 " + (s.datacenter_est || 0)]
   ];
-  document.getElementById("cards").innerHTML = items.map(function (x) {
-    return '<div class="card"><div class="k">' + x[0] + '</div><div class="v">' + x[1] + '</div><div class="k">' + x[2] + '</div></div>';
+  document.getElementById("cards").innerHTML = items.map(function (x, i) {
+    return '<div class="'+(i===0?'card wide':'card')+'"><div class="k">' + x[0] + '</div><div class="'+(i===0?'v ts':'v')+'">' + x[1] + '</div><div class="k">' + x[2] + '</div></div>';
   }).join("");
 }
 
