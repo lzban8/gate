@@ -455,16 +455,42 @@ def build_chains_text(data):
 
 
 # edgetunnel 入口地址池: 客户端直连 Cloudflare 的优选 IP:端口 (循环分配给每个国家节点当入口)
-# 可通过环境变量 EDGE_HOSTS 覆盖 (逗号分隔)
-EDGE_HOSTS = [
-    h.strip()
-    for h in os.environ.get(
-        "EDGE_HOSTS",
-        "saas.072159.xyz:443,hzytjy.cn:443,ali.nonull.pp.ua:443,auto.dolby.dpdns.org:443,"
-        "cdn.cnno.de:443,saas.sin.fan:443,cf.777791.xyz:443",
-    ).split(",")
-    if h.strip()
-]
+# 优先级: 环境变量 EDGE_HOSTS > data/edge-ips.txt (NAS 每日自动更新) > 硬编码默认值
+def _load_edge_hosts():
+    # 1. 环境变量覆盖 (逗号分隔)
+    _env = os.environ.get("EDGE_HOSTS", "").strip()
+    if _env:
+        _hosts = [h.strip() for h in _env.split(",") if h.strip()]
+        if _hosts:
+            return _hosts
+    # 2. data/edge-ips.txt (家里 NAS 每天凌晨用 CFData 扫描更新)
+    try:
+        _edge_file = os.path.join(REPO_DIR, "data", "edge-ips.txt")
+        with open(_edge_file, "r") as _f:
+            _hosts = []
+            for _line in _f:
+                _line = _line.strip()
+                if not _line or _line.startswith("#"):
+                    continue
+                if ":" not in _line:
+                    _line += ":443"
+                _hosts.append(_line)
+            if len(_hosts) >= 5:
+                return _hosts
+    except Exception:
+        pass
+    # 3. 硬编码兜底 (作者默认 7 个优选域名)
+    return [
+        h.strip()
+        for h in (
+            "saas.072159.xyz:443,hzytjy.cn:443,ali.nonull.pp.ua:443,auto.dolby.dpdns.org:443,"
+            "cdn.cnno.de:443,saas.sin.fan:443,cf.777791.xyz:443"
+        ).split(",")
+        if h.strip()
+    ]
+
+
+EDGE_HOSTS = _load_edge_hosts()
 
 HOSTS_URL = os.environ.get("HOSTS_URL", "https://lzban8.github.io/gate/hosts.txt")
 NODES_URL = os.environ.get("NODES_URL", "https://lzban8.github.io/gate/nodes.txt")
